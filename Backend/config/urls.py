@@ -9,6 +9,7 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 from core.auth import csrf_cookie
 from core.auth_views import LoginView, LogoutView, MeView, RefreshView
+from core.health_views import health
 
 
 def protect_drf_csrf(view):
@@ -32,6 +33,7 @@ def protect_drf_csrf(view):
     return protected
 
 urlpatterns = [
+    path('api/health/', health, name='health'),
     path('admin/', admin.site.urls),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
