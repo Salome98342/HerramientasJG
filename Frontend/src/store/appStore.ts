@@ -1,0 +1,4 @@
+import { create } from 'zustand';
+import type { AppNotification, SessionUser } from '@/types/api';
+interface AppState { user: SessionUser | null; theme: 'light' | 'dark'; notifications: AppNotification[]; setUser: (user: SessionUser | null) => void; toggleTheme: () => void; setNotifications: (items: AppNotification[]) => void; markRead: (id: string) => void }
+export const useAppStore = create<AppState>(set => ({ user: null, theme: 'light', notifications: [], setUser: user => set({ user }), toggleTheme: () => set(state => { const theme = state.theme === 'light' ? 'dark' : 'light'; document.documentElement.dataset.theme = theme; return { theme }; }), setNotifications: notifications => set({ notifications }), markRead: id => set(state => ({ notifications: state.notifications.map(item => item.id === id ? { ...item, read: true } : item) })) }));

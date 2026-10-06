@@ -1,0 +1,1 @@
+body{background:var(--color-bg);transition:background-color var(--duration-normal) var(--ease-standard),color var(--duration-normal) var(--ease-standard)}:focus-visible{outline:3px solid color-mix(in srgb,var(--color-info) 75%,transparent);outline-offset:2px}::selection{background:var(--color-primary-soft);color:var(--color-text)}

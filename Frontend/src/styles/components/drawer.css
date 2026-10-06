@@ -1,0 +1,1 @@
+.jg-drawer__backdrop{display:flex;justify-content:flex-end;padding:0}.jg-drawer{width:min(520px,92vw);height:100%;overflow:auto;background:var(--color-surface);box-shadow:var(--shadow-lg);animation:jg-slide-in var(--duration-normal) var(--ease-standard)}.jg-drawer__body{padding:var(--space-6)}

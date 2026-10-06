@@ -1,0 +1,1 @@
+.jg-skeleton{display:block;min-height:14px;border-radius:var(--radius-sm);background:linear-gradient(100deg,var(--color-surface-muted) 30%,var(--color-border) 50%,var(--color-surface-muted) 70%);background-size:200% 100%;animation:jg-shimmer 1.35s linear infinite}.jg-skeleton--text{width:65%}.jg-skeleton--card{height:120px}
