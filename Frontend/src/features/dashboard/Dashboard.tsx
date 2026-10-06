@@ -1,17 +1,14 @@
-import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Activity, ArrowDownRight, ArrowUpRight, Banknote, CircleAlert, PackageCheck, Wallet } from 'lucide-react';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { apiFetch } from '@/lib/apiClient';
 import { dashboard as fallback } from '@/mocks/data';
 import { useAppStore } from '@/store/appStore';
-import type { DashboardSummary } from '@/types/api';
 
 const cop = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
 
 export default function Dashboard() {
-  const { data = fallback, isLoading } = useQuery({ queryKey: ['dashboard'], queryFn: () => apiFetch<DashboardSummary>('/dashboard/summary/') });
+  const data = fallback;
   const user = useAppStore(state => state.user);
   const today = format(new Date(), "EEEE, d 'de' MMMM 'de' yyyy", { locale: es }).toLocaleUpperCase('es-CO');
   return <main className="jg-page jg-dashboard jg-enter">
@@ -34,6 +31,6 @@ export default function Dashboard() {
         <article className="jg-card jg-alerts"><div className="jg-section-heading"><div><h2>Necesita atención</h2><p>Alertas para revisar</p></div><span className="jg-alerts__count">{data.alerts.length}</span></div>{data.alerts.map(alert => <div className="jg-alert" key={alert.id}><span className={`jg-alert__icon jg-alert__icon--${alert.kind}`}><CircleAlert size={17} /></span><span><b>{alert.title}</b><small>{alert.detail}</small></span><span className={`jg-alert__dot jg-alert__dot--${alert.kind}`} /></div>)}</article>
       </div>
     </section>
-    <p className="jg-dashboard__loading" aria-live="polite">{isLoading ? 'Actualizando datos…' : ''}</p>
+    <p className="jg-dashboard__loading" aria-live="polite" />
   </main>;
 }

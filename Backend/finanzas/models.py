@@ -8,6 +8,7 @@ class CompraInventario(BaseModelo):
     proveedor = models.ForeignKey(Proveedor, null=True, blank=True, on_delete=models.PROTECT, related_name='compras')
     fecha = models.DateTimeField(auto_now_add=True)
     total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    anulada = models.BooleanField(default=False)
     class Meta:
         verbose_name='Compra de inventario'; verbose_name_plural='Compras de inventario'
         constraints=[models.UniqueConstraint(fields=['negocio','numero'], name='uq_compra_numero_negocio'), models.CheckConstraint(condition=Q(total__gte=0), name='ck_compra_total_gte_0')]
@@ -18,9 +19,10 @@ class DetalleCompra(BaseModelo):
     producto = models.ForeignKey(ProductoVenta, on_delete=models.PROTECT, related_name='detalles_compra')
     cantidad = models.DecimalField(max_digits=14, decimal_places=2)
     costo_unitario = models.DecimalField(max_digits=14, decimal_places=2)
+    subtotal = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     class Meta:
         verbose_name='Detalle de compra'; verbose_name_plural='Detalles de compra'
-        constraints=[models.CheckConstraint(condition=Q(cantidad__gt=0), name='ck_det_compra_cantidad_gt_0'), models.CheckConstraint(condition=Q(costo_unitario__gte=0), name='ck_det_compra_costo_gte_0')]
+        constraints=[models.CheckConstraint(condition=Q(cantidad__gt=0), name='ck_det_compra_cantidad_gt_0'), models.CheckConstraint(condition=Q(costo_unitario__gte=0), name='ck_det_compra_costo_gte_0'), models.CheckConstraint(condition=Q(subtotal__gte=0), name='ck_det_compra_subtotal_gte_0')]
 
 class CategoriaGasto(BaseModelo):
     nombre = models.CharField(max_length=100)

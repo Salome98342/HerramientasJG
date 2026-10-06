@@ -47,3 +47,4 @@ class MovimientoInventario(BaseModelo):
         verbose_name='Movimiento de inventario'; verbose_name_plural='Movimientos de inventario'
         constraints=[models.CheckConstraint(condition=Q(cantidad__gt=0), name='ck_mov_inv_cantidad_gt_0'), models.CheckConstraint(condition=Q(costo_unitario__gte=0), name='ck_mov_inv_costo_gte_0')]
         indexes=[models.Index(fields=['negocio','producto','-creado_en']), models.Index(fields=['negocio','tipo']), models.Index(fields=['origen_tipo','origen_id'])]
+

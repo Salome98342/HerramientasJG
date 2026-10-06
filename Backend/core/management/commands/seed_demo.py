@@ -13,8 +13,7 @@ from ventas.services import registrar_venta, crear_separado
 from alquileres.services import registrar_alquiler, crear_recibo_alquiler
 from finanzas.models import CategoriaGasto
 from finanzas.services import registrar_compra
-from finanzas.models import Gasto
-from cajas.models import MovimientoCaja
+from finanzas.services import registrar_gasto
 
 class Command(BaseCommand):
     help='Crea datos de prueba completos para Herramientas JG.'
@@ -68,6 +67,5 @@ class Command(BaseCommand):
         alquiler=registrar_alquiler(negocio=negocio,usuario=cajero,turno=turno,cliente=clientes[2],detalles=[{'articulo_id':ArticuloAlquiler.objects.get(negocio=negocio,referencia='ALQ-001').id,'cantidad':2}],fecha_salida=ahora,fecha_prevista_devolucion=ahora+timedelta(days=3),deposito=Decimal('50000'))
         crear_recibo_alquiler(negocio=negocio,usuario=cajero,alquiler=alquiler,turno=turno,valor=Decimal('60000'),medio_pago='TRANSFERENCIA')
         catg,_=CategoriaGasto.objects.get_or_create(negocio=negocio,nombre='Operación',defaults={'creado_por':admin})
-        gasto=Gasto.objects.create(negocio=negocio,creado_por=admin,categoria=catg,valor=Decimal('80000'),descripcion='Gasto demo',fecha=ahora,medio_pago='EFECTIVO',turno=turno)
-        MovimientoCaja.objects.create(negocio=negocio,creado_por=admin,turno=turno,tipo='EGRESO',concepto=gasto.descripcion,medio_pago=gasto.medio_pago,valor=gasto.valor,gasto=gasto)
+        registrar_gasto(negocio=negocio,usuario=cajero,categoria=catg,valor=Decimal('80000'),descripcion='Gasto demo',fecha=ahora,medio_pago='EFECTIVO',turno=turno)
         self.stdout.write(self.style.SUCCESS('Datos demo creados. Usuarios: admin_jg y cajero_jg.'))

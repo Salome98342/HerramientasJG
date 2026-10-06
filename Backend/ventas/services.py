@@ -7,11 +7,19 @@ from core.models import Consecutivo, Cliente
 from inventario.models import ProductoVenta, MovimientoInventario
 from .models import Venta, DetalleVenta, Abono
 from cajas.models import MovimientoCaja, TurnoCaja
+from cajas.services import obtener_turno_abierto, registrar_movimiento
 
 
-def _validar_turno(negocio, turno):
-    if not turno or turno.negocio_id != negocio.id or turno.estado != TurnoCaja.Estado.ABIERTO:
-        raise ValueError('Se requiere un turno de caja abierto del negocio.')
+def _validar_turno(negocio, usuario, turno):
+    if negocio is None or usuario.negocio_id != negocio.pk:
+        raise ValueError('El usuario no pertenece a este negocio.')
+    turno_abierto = obtener_turno_abierto(usuario)
+    if turno is not None and getattr(turno, 'pk', turno) != turno_abierto.pk:
+        raise ValueError('La operación debe registrarse en tu turno de caja abierto.')
+    turno = TurnoCaja.objects.select_for_update().get(pk=turno_abierto.pk, negocio=negocio)
+    if turno.estado != TurnoCaja.Estado.ABIERTO:
+        raise ValueError('No tienes un turno de caja abierto. Abre un turno para continuar.')
+    return turno
 
 
 def _validar_pagos(pagos, total):
@@ -21,8 +29,8 @@ def _validar_pagos(pagos, total):
     return total_pagado
 
 @transaction.atomic
-def registrar_venta(*, negocio, usuario, turno, cliente, tipo, items, descuento=Decimal('0'), pagos=()):
-    _validar_turno(negocio, turno)
+def registrar_venta(*, negocio, usuario, turno=None, cliente, tipo, items, descuento=Decimal('0'), pagos=()):
+    turno = _validar_turno(negocio, usuario, turno)
     if not items:
         raise ValueError('La venta debe tener al menos un producto.')
     if tipo == Venta.Tipo.CREDITO and (not cliente or not cliente.permite_credito):
@@ -83,11 +91,11 @@ def registrar_venta(*, negocio, usuario, turno, cliente, tipo, items, descuento=
     return venta
 
 @transaction.atomic
-def registrar_abono(*, negocio, usuario, venta, turno, valor, medio_pago):
+def registrar_abono(*, negocio, usuario, venta, turno=None, valor, medio_pago):
     valor = Decimal(str(valor))
     if valor <= 0:
         raise ValueError('El abono debe ser mayor que cero.')
-    _validar_turno(negocio, turno)
+    turno = _validar_turno(negocio, usuario, turno)
     venta = Venta.objects.select_for_update().get(pk=venta.pk, negocio=negocio)
     if venta.estado in [Venta.Estado.ANULADA, Venta.Estado.CANCELADA]:
         raise ValueError('No se puede abonar una venta anulada o cancelada.')
@@ -98,12 +106,15 @@ def registrar_abono(*, negocio, usuario, venta, turno, valor, medio_pago):
     if venta.saldo_pendiente == 0:
         venta.estado = Venta.Estado.PAGADA
     venta.save(update_fields=['saldo_pendiente','estado','actualizado_en'])
-    MovimientoCaja.objects.create(negocio=negocio, creado_por=usuario, turno=turno, tipo=MovimientoCaja.Tipo.INGRESO,
-        concepto=f'Abono venta #{venta.numero}', medio_pago=medio_pago, valor=valor, venta=venta, abono=abono)
+    registrar_movimiento(
+        negocio=negocio, usuario=usuario, turno=turno,
+        tipo=MovimientoCaja.Tipo.INGRESO, concepto=f'Abono venta #{venta.numero}',
+        medio_pago=medio_pago, valor=valor, venta=venta, abono=abono,
+    )
     return abono
 
 @transaction.atomic
-def crear_separado(*, negocio, usuario, turno, cliente, items, descuento=Decimal('0'), pagos=()):
+def crear_separado(*, negocio, usuario, turno=None, cliente, items, descuento=Decimal('0'), pagos=()):
     return registrar_venta(negocio=negocio, usuario=usuario, turno=turno, cliente=cliente,
                            tipo=Venta.Tipo.SEPARADO, items=items, descuento=descuento, pagos=pagos)
 

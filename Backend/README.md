@@ -28,6 +28,8 @@ python manage.py seed_demo --password "DemoJG-local-2026!"
 python manage.py runserver 127.0.0.1:8000
 ```
 
+> **Aviso:** después de cambiar o agregar rutas, reinicia el backend para que cargue el URLconf actualizado. Confirma el proceso con `GET http://127.0.0.1:8000/api/health/`; debe responder `200` e identificar el proyecto como `HerramientasJG`.
+
 El comando demo conserva los usuarios `admin_jg` y `cajero_jg`, guarda la contraseña con el hasher de Django y valida la política mínima de contraseña. `--password` puede omitirse en desarrollo, donde se conserva `Demo12345!`. Con `DEBUG=False`, el comando se niega a ejecutarse a menos que también se use `--allow-production` y se indique una contraseña explícita. No uses datos demo en producción.
 
 ## Autenticación y contrato
@@ -49,6 +51,22 @@ Login, refresh y logout están protegidos con CSRF. El frontend pide primero `/a
 django-axes bloquea tras cinco fallos por combinación usuario+IP durante 15 minutos; DRF limita login a cinco solicitudes por minuto e incluye un límite para refresh. La respuesta de bloqueo es genérica. Eventos exitosos y fallidos registran fecha, usuario e IP, nunca contraseña o token. No se debe confiar en `X-Forwarded-For` salvo configurar un proxy confiable y su extracción de IP.
 
 OpenAPI está en `/api/schema/` y Swagger UI en `/api/docs/` (ambos bajo la política global de autenticación).
+
+## Cajas y turnos
+
+| Método | Ruta | Autorización | Uso |
+|---|---|---|---|
+| GET/POST | `/api/cajas/` | ADMIN | Consultar y crear cajas. |
+| GET | `/api/cajas/disponibles/` | ADMIN/CAJERO | Obtener las cajas activas que se pueden seleccionar al abrir turno. |
+| GET/PATCH/DELETE | `/api/cajas/{id}/` | ADMIN | Consultar, editar y desactivar cajas (no se puede desactivar una caja con turno abierto). |
+| GET | `/api/cajas/turnos/` | ADMIN/CAJERO | Historial; permite filtrar con `estado`, `caja`, `desde`, `hasta` y, para ADMIN, `usuario`. El cajero ve únicamente sus turnos. |
+| GET | `/api/cajas/turnos/actual/` | ADMIN/CAJERO | Devuelve el turno abierto del usuario autenticado y su resumen, o `turno: null`. |
+| POST | `/api/cajas/turnos/abrir/` | ADMIN/CAJERO | Abre un turno con `caja` y `base_inicial`. |
+| POST | `/api/cajas/turnos/{id}/cerrar/` | ADMIN/CAJERO | Cierra el turno propio con `efectivo_contado`; guarda efectivo esperado y diferencia. |
+| GET | `/api/cajas/turnos/{id}/resumen/` | ADMIN/CAJERO | Totales de ingreso, egreso y neto por medio de pago. |
+| GET | `/api/cajas/turnos/{id}/movimientos/` | ADMIN/CAJERO | Libro paginado del turno. |
+
+Una restricción de base de datos impide más de un turno abierto por usuario o por caja. `cajas.services.obtener_turno_abierto(usuario)` devuelve el turno activo o genera un error claro; `registrar_movimiento` serializa los movimientos contra el cierre para no permitir líneas tardías. Los pagos de ventas/abonos y recibos de alquiler, así como los gastos registrados mediante `finanzas.services.registrar_gasto`, escriben en el libro. Un turno cerrado es de solo lectura desde la API.
 
 ## Variables y despliegue
 
@@ -79,4 +97,4 @@ Las pruebas requieren una base PostgreSQL de test accesible con la conexión de 
 
 ### Límites de esta entrega
 
-La autenticación está operativa, pero las APIs de inventario/ventas/cajas/reportes aún no están construidas; las vistas de roles y filtros de negocio quedan listas para conectarlas. HTTPS real, gestión/rotación de claves, backups, proxy confiable, observabilidad centralizada y despliegue seguro dependen del entorno de producción.
+Las APIs de autenticación, inventario y cajas/turnos están operativas. Ventas, alquileres y reportes siguen completándose por fases. HTTPS real, gestión/rotación de claves, backups, proxy confiable, observabilidad centralizada y despliegue seguro dependen del entorno de producción.

@@ -13,6 +13,23 @@ export class ApiError extends Error {
   }
 }
 
+async function responseError(response: Response): Promise<ApiError> {
+  let message = 'No fue posible completar la solicitud.';
+  try {
+    const data = await response.json() as { detail?: unknown };
+    if (typeof data.detail === 'string') message = data.detail;
+    else if (data.detail !== undefined) message = JSON.stringify(data.detail);
+    else {
+      const firstMessage = Object.values(data).flatMap(value => Array.isArray(value) ? value : [value])
+        .find(value => typeof value === 'string');
+      if (typeof firstMessage === 'string') message = firstMessage;
+    }
+  } catch {
+    message = response.statusText || message;
+  }
+  return new ApiError(response.status, message);
+}
+
 export const tokenMemory = {
   get: () => accessToken,
   set: (value: string | null) => { accessToken = value; },
@@ -23,7 +40,7 @@ async function getCsrfToken(): Promise<string> {
   if (!csrfPromise) {
     csrfPromise = fetch(`${API_URL}/auth/csrf/`, { credentials: 'include' })
       .then(async response => {
-        if (!response.ok) throw new ApiError(response.status);
+        if (!response.ok) throw await responseError(response);
         const data = await response.json() as { token: string };
         csrfToken = data.token;
         return data.token;

@@ -5,6 +5,8 @@ import { useQuery } from '@tanstack/react-query';
 import { apiFetch, tokenMemory } from '@/lib/apiClient';
 import { enableBrowserPush } from '@/lib/push';
 import { notifications as mockNotifications } from '@/mocks/data';
+import { inventarioApi } from '@/features/inventario/api';
+import { cajasApi } from '@/features/cajas/api';
 import { useAppStore } from '@/store/appStore';
 import type { AppNotification } from '@/types/api';
 import { useToast } from '@/components/ui/ToastContext';
@@ -14,6 +16,7 @@ const nav = [
   { label: 'Resumen', to: '/dashboard', icon: LayoutDashboard },
   { label: 'Ventas', to: '/ventas', icon: ClipboardList },
   { label: 'Inventario', to: '/inventario', icon: Package },
+  { label: 'Compras', to: '/compras', icon: ClipboardList, adminOnly: true },
   { label: 'Alquileres', to: '/alquileres', icon: Wrench },
   { label: 'Cajas y finanzas', to: '/cajas', icon: ChartNoAxesCombined },
   { label: 'Reportes', to: '/reportes', icon: ChartNoAxesCombined, adminOnly: true },
@@ -30,9 +33,17 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [sidebar, setSidebar] = useState(false);
   const navigate = useNavigate();
   const { push } = useToast();
-  const query = useQuery({ queryKey: ['notifications'], queryFn: () => apiFetch<AppNotification[]>('/notifications/'), retry: false });
+  const stockAlerts = useQuery({ queryKey: ['inventario-alertas'], queryFn: inventarioApi.alertas, retry: false });
+  const cajaActual = useQuery({ queryKey: ['cajas-actual'], queryFn: cajasApi.actual, retry: false, refetchInterval: 30_000 });
 
-  useEffect(() => { setNotifications(query.data ?? mockNotifications); }, [query.data, setNotifications]);
+  useEffect(() => {
+    const alerts: AppNotification[] = (stockAlerts.data?.results ?? []).map(product => ({
+      id: `stock-${product.id}`, title: product.estado_stock === 'agotado' ? 'Producto agotado' : 'Stock bajo',
+      detail: `${product.referencia} · ${product.nombre} · quedan ${product.stock_actual}`,
+      kind: product.estado_stock === 'agotado' ? 'danger' : 'warning', createdAt: 'Ahora', read: false,
+    }));
+    setNotifications([...mockNotifications.filter(item => !item.id.startsWith('stock-')), ...alerts]);
+  }, [stockAlerts.data, setNotifications]);
 
   const logout = () => {
     void apiFetch<void>('/auth/logout/', { method: 'POST' }).catch(() => undefined);
@@ -71,7 +82,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     </aside>
     <div className="jg-shell__main">
       <header className="jg-topbar"><button className="jg-icon-button jg-topbar__menu" aria-label="Abrir menú" onClick={() => setSidebar(true)}><Menu /></button><div className="jg-topbar__crumb">Panel <span>/</span> <b>Resumen</b></div>
-        <div className="jg-topbar__actions"><button className="jg-icon-button" aria-label={theme === 'light' ? 'Activar tema oscuro' : 'Activar tema claro'} onClick={toggleTheme}>{theme === 'light' ? <Moon size={19} /> : <Sun size={19} />}</button>
+        <div className="jg-topbar__actions"><button className={`cash-topbar-status${cajaActual.data?.turno ? ' cash-topbar-status--open' : ''}${cajaActual.isError ? ' cash-topbar-status--error' : ''}`} onClick={() => navigate('/cajas')} aria-label={`Estado de caja: ${cajaActual.isError ? 'no disponible' : cajaActual.data?.turno ? 'abierta' : 'cerrada'}`}><i />{cajaActual.isLoading ? 'Consultando caja' : cajaActual.isError ? 'Caja no disponible' : cajaActual.data?.turno ? `Abierta · ${cajaActual.data.turno.caja_nombre}` : 'Caja cerrada'}</button><button className="jg-icon-button" aria-label={theme === 'light' ? 'Activar tema oscuro' : 'Activar tema claro'} onClick={toggleTheme}>{theme === 'light' ? <Moon size={19} /> : <Sun size={19} />}</button>
           <div className="jg-notification"><button className="jg-icon-button jg-notification__trigger" aria-label={`Notificaciones, ${unread} sin leer`} aria-expanded={open} onClick={() => setOpen(!open)}><Bell size={19} />{unread > 0 && <i />}</button>
             {open && <><button className="jg-dismiss" aria-label="Cerrar notificaciones" onClick={() => setOpen(false)} /><section className="jg-notification__panel" aria-label="Centro de notificaciones"><header><div><b>Notificaciones</b><span>{unread} nuevas</span></div><button className="jg-text-button" onClick={() => items.forEach(item => markRead(item.id))}>Marcar leídas</button></header>
               {'Notification' in window && Notification.permission !== 'granted' && <button className="jg-notification__push" onClick={() => void activatePush()}>Activar avisos de este dispositivo</button>}

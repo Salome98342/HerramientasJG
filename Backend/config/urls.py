@@ -4,12 +4,24 @@ from axes.handlers.proxy import AxesProxyHandler
 from axes.helpers import get_lockout_response
 from django.contrib import admin
 from django.urls import path
+from django.urls import include
+from rest_framework.routers import DefaultRouter
 from django.views.decorators.csrf import csrf_protect
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 from core.auth import csrf_cookie
 from core.auth_views import LoginView, LogoutView, MeView, RefreshView
 from core.health_views import health
+from cajas.views import CajaViewSet, TurnoCajaViewSet
+from inventario.views import AjusteView, AlertasStockView, CategoriaViewSet, CompraViewSet, ProductoViewSet, ProveedorViewSet
+
+router = DefaultRouter()
+router.register('cajas/turnos', TurnoCajaViewSet, basename='turno-caja')
+router.register('cajas', CajaViewSet, basename='caja')
+router.register('inventario/categorias', CategoriaViewSet, basename='categoria-producto')
+router.register('inventario/proveedores', ProveedorViewSet, basename='proveedor')
+router.register('inventario/productos', ProductoViewSet, basename='producto-venta')
+router.register('inventario/compras', CompraViewSet, basename='compra-inventario')
 
 
 def protect_drf_csrf(view):
@@ -33,6 +45,9 @@ def protect_drf_csrf(view):
     return protected
 
 urlpatterns = [
+    path('api/', include(router.urls)),
+    path('api/inventario/ajustes/', AjusteView.as_view(), name='inventario-ajuste'),
+    path('api/inventario/alertas-stock/', AlertasStockView.as_view(), name='inventario-alertas-stock'),
     path('api/health/', health, name='health'),
     path('admin/', admin.site.urls),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

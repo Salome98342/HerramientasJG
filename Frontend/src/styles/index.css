@@ -27,4 +27,6 @@
 @import './pages/login.css';
 @import './pages/dashboard.css';
 @import './pages/chart.css';
+@import './pages/inventario.css';
+@import './pages/cajas.css';
 @import './utilities/utilities.css';

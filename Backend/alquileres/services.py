@@ -4,7 +4,8 @@ from django.db.models import F
 from django.utils import timezone
 from core.services import siguiente_consecutivo
 from core.models import Consecutivo
-from cajas.models import ReciboCaja, MovimientoCaja
+from cajas.models import ReciboCaja, MovimientoCaja, TurnoCaja
+from cajas.services import obtener_turno_abierto, registrar_movimiento
 from .models import ArticuloAlquiler, Alquiler, DetalleAlquiler
 
 @transaction.atomic
@@ -52,10 +53,20 @@ def registrar_devolucion_alquiler(*, negocio, usuario, alquiler, devoluciones, f
     return alquiler
 
 @transaction.atomic
-def crear_recibo_alquiler(*, negocio, usuario, alquiler, turno, valor, medio_pago, concepto='Pago de alquiler'):
+def crear_recibo_alquiler(*, negocio, usuario, alquiler, turno=None, valor, medio_pago, concepto='Pago de alquiler'):
+    turno_abierto = obtener_turno_abierto(usuario)
+    if usuario.negocio_id != negocio.id:
+        raise ValueError('El usuario no pertenece a este negocio.')
+    if turno is not None and getattr(turno, 'pk', turno) != turno_abierto.pk:
+        raise ValueError('El recibo debe registrarse en tu turno de caja abierto.')
+    turno = TurnoCaja.objects.select_for_update().get(pk=turno_abierto.pk, negocio=negocio)
+    if alquiler.negocio_id != negocio.id:
+        raise ValueError('El alquiler no pertenece a este negocio.')
     numero,_=siguiente_consecutivo(negocio, Consecutivo.Tipo.RECIBO_ALQUILER)
     recibo=ReciboCaja.objects.create(negocio=negocio, creado_por=usuario, numero=numero, alquiler=alquiler, cliente=alquiler.cliente,
         valor=Decimal(str(valor)), concepto=concepto, medio_pago=medio_pago, turno=turno)
-    MovimientoCaja.objects.create(negocio=negocio, creado_por=usuario, turno=turno, tipo=MovimientoCaja.Tipo.INGRESO,
-        concepto=concepto, medio_pago=medio_pago, valor=recibo.valor, recibo=recibo)
+    registrar_movimiento(
+        negocio=negocio, usuario=usuario, turno=turno, tipo=MovimientoCaja.Tipo.INGRESO,
+        concepto=concepto, medio_pago=medio_pago, valor=recibo.valor, recibo=recibo,
+    )
     return recibo
