@@ -102,4 +102,6 @@ def ajustar_inventario(*, negocio, producto, cantidad, direccion, motivo, usuari
 
 
 def productos_bajo_stock(negocio):
-    return ProductoVenta.objects.filter(negocio=negocio, activo=True, stock_actual__lte=F('stock_minimo')).select_related('categoria')
+    return ProductoVenta.objects.filter(
+        negocio=negocio, activo=True, stock_actual__lte=F('stock_minimo'),
+    ).select_related('categoria').order_by('referencia', 'pk')

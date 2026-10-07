@@ -13,7 +13,7 @@ from rest_framework.test import APIClient
 from core.models import Consecutivo, Negocio, Proveedor
 from finanzas.models import CompraInventario
 from inventario.models import CategoriaProducto, MovimientoInventario, ProductoVenta
-from inventario.services import ajustar_inventario, registrar_compra
+from inventario.services import ajustar_inventario, productos_bajo_stock, registrar_compra
 
 User = get_user_model()
 
@@ -24,6 +24,17 @@ def test_inventory_list_routes_are_registered():
     assert reverse('categoria-producto-list') == '/api/inventario/categorias/'
     assert resolve('/api/inventario/productos/').url_name == 'producto-venta-list'
     assert resolve('/api/inventario/categorias/').url_name == 'categoria-producto-list'
+
+
+@pytest.mark.django_db
+def test_low_stock_products_are_returned_in_stable_order(escenario):
+    data = escenario
+    ProductoVenta.objects.filter(pk=data['producto'].pk).update(stock_minimo=10)
+    ProductoVenta.objects.create(
+        negocio=data['negocio'], referencia='A-1', nombre='Alerta anterior',
+        stock_actual=0, stock_minimo=1,
+    )
+    assert [p.referencia for p in productos_bajo_stock(data['negocio'])] == ['A-1', 'T-1']
 
 
 @pytest.fixture
