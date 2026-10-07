@@ -104,3 +104,26 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
   if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
 }
+
+export async function apiDownload(path: string, fallbackName: string): Promise<void> {
+  const headers = new Headers();
+  if (accessToken) headers.set('Authorization', `Bearer ${accessToken}`);
+  let response = await fetch(`${API_URL}${path}`, { credentials: 'include', headers });
+  if (response.status === 401 && accessToken) {
+    if (await refresh()) {
+      headers.set('Authorization', `Bearer ${accessToken}`);
+      response = await fetch(`${API_URL}${path}`, { credentials: 'include', headers });
+    }
+    if (response.status === 401) expireSession();
+  }
+  if (!response.ok) throw await responseError(response);
+  const blob = await response.blob();
+  const disposition = response.headers.get('Content-Disposition') ?? '';
+  const filename = disposition.match(/filename="?([^";]+)"?/i)?.[1] ?? fallbackName;
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}

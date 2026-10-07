@@ -1,4 +1,5 @@
 from datetime import timedelta
+from decimal import Decimal
 from pathlib import Path
 
 import environ
@@ -140,6 +141,9 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool('SECURE_HSTS_INCLUDE_SUBDOMAINS', defa
 SECURE_HSTS_PRELOAD = env.bool('SECURE_HSTS_PRELOAD', default=not DEBUG)
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
+ALQUILER_RECARGO_DIARIO_MULTIPLICADOR = Decimal(
+    env('ALQUILER_RECARGO_DIARIO_MULTIPLICADOR', default='1'),
+)
 
 LOGGING = {
     'version': 1,

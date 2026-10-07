@@ -42,3 +42,19 @@ class DetalleAlquiler(BaseModelo):
     class Meta:
         verbose_name='Detalle de alquiler'; verbose_name_plural='Detalles de alquiler'
         constraints=[models.CheckConstraint(condition=Q(cantidad__gt=0), name='ck_det_alq_cantidad_gt_0'), models.CheckConstraint(condition=Q(tarifa_dia__gte=0), name='ck_det_alq_tarifa_gte_0'), models.CheckConstraint(condition=Q(cantidad_devuelta__gte=0), name='ck_det_alq_devuelta_gte_0'), models.CheckConstraint(condition=Q(cantidad_devuelta__lte=models.F('cantidad')), name='ck_det_alq_devuelta_lte_cantidad')]
+
+
+class DevolucionAlquiler(BaseModelo):
+    detalle = models.ForeignKey(DetalleAlquiler, on_delete=models.PROTECT, related_name='devoluciones')
+    cantidad = models.DecimalField(max_digits=14, decimal_places=2)
+    fecha = models.DateTimeField()
+    valor = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+
+    class Meta:
+        verbose_name = 'Devolución de alquiler'
+        verbose_name_plural = 'Devoluciones de alquiler'
+        constraints = [
+            models.CheckConstraint(condition=Q(cantidad__gt=0), name='ck_dev_alq_cantidad_gt_0'),
+            models.CheckConstraint(condition=Q(valor__gte=0), name='ck_dev_alq_valor_gte_0'),
+        ]
+        indexes = [models.Index(fields=['negocio', 'fecha'])]

@@ -1,24 +1,26 @@
-import { Bell, ChartNoAxesCombined, ChevronDown, CircleHelp, ClipboardList, LayoutDashboard, LogOut, Menu, Moon, Package, Settings, Sun, Wrench, X } from 'lucide-react';
+import { Bell, ChartNoAxesCombined, ChevronDown, CircleHelp, ClipboardList, LayoutDashboard, LogOut, Menu, Moon, Package, Settings, ShoppingCart, Sun, Users, WalletCards, Wrench, X, ReceiptText } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch, tokenMemory } from '@/lib/apiClient';
 import { enableBrowserPush } from '@/lib/push';
-import { notifications as mockNotifications } from '@/mocks/data';
-import { inventarioApi } from '@/features/inventario/api';
 import { cajasApi } from '@/features/cajas/api';
+import { finanzasApi } from '@/features/finanzas/api';
 import { useAppStore } from '@/store/appStore';
-import type { AppNotification } from '@/types/api';
 import { useToast } from '@/components/ui/ToastContext';
 import type { ReactNode } from 'react';
 
 const nav = [
   { label: 'Resumen', to: '/dashboard', icon: LayoutDashboard },
-  { label: 'Ventas', to: '/ventas', icon: ClipboardList },
+  { label: 'Venta rápida e historial', to: '/ventas', icon: ShoppingCart },
+  { label: 'Créditos y separados', to: '/creditos', icon: WalletCards },
+  { label: 'Clientes', to: '/clientes', icon: Users },
   { label: 'Inventario', to: '/inventario', icon: Package },
   { label: 'Compras', to: '/compras', icon: ClipboardList, adminOnly: true },
   { label: 'Alquileres', to: '/alquileres', icon: Wrench },
+  { label: 'Inventario de alquiler', to: '/inventario-alquiler', icon: Package },
   { label: 'Cajas y finanzas', to: '/cajas', icon: ChartNoAxesCombined },
+  { label: 'Gastos', to: '/gastos', icon: ReceiptText },
   { label: 'Reportes', to: '/reportes', icon: ChartNoAxesCombined, adminOnly: true },
 ];
 
@@ -29,21 +31,42 @@ export function AppShell({ children }: { children: ReactNode }) {
   const setNotifications = useAppStore(state => state.setNotifications);
   const items = useAppStore(state => state.notifications);
   const markRead = useAppStore(state => state.markRead);
+  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [sidebar, setSidebar] = useState(false);
   const navigate = useNavigate();
   const { push } = useToast();
-  const stockAlerts = useQuery({ queryKey: ['inventario-alertas'], queryFn: inventarioApi.alertas, retry: false });
-  const cajaActual = useQuery({ queryKey: ['cajas-actual'], queryFn: cajasApi.actual, retry: false, refetchInterval: 30_000 });
+  const notificationQuery = useQuery({
+    queryKey: ['finanzas-alertas', user?.id],
+    queryFn: finanzasApi.alertas,
+    retry: false,
+    refetchInterval: 60_000,
+  });
+  const cajaActual = useQuery({ queryKey: ['cajas-actual', user?.id], queryFn: cajasApi.actual, retry: false, refetchInterval: 30_000 });
 
   useEffect(() => {
-    const alerts: AppNotification[] = (stockAlerts.data?.results ?? []).map(product => ({
-      id: `stock-${product.id}`, title: product.estado_stock === 'agotado' ? 'Producto agotado' : 'Stock bajo',
-      detail: `${product.referencia} · ${product.nombre} · quedan ${product.stock_actual}`,
-      kind: product.estado_stock === 'agotado' ? 'danger' : 'warning', createdAt: 'Ahora', read: false,
-    }));
-    setNotifications([...mockNotifications.filter(item => !item.id.startsWith('stock-')), ...alerts]);
-  }, [stockAlerts.data, setNotifications]);
+    if (notificationQuery.data) {
+      setNotifications(notificationQuery.data.results.map(item => ({
+        id: item.id,
+        title: item.titulo,
+        detail: item.detalle,
+        kind: item.tipo,
+        createdAt: new Date(item.creada_en).toLocaleString('es-CO'),
+        read: item.leida,
+      })));
+    } else {
+      setNotifications([]);
+    }
+  }, [notificationQuery.data, setNotifications]);
+
+  const markNotificationsRead = useMutation({
+    mutationFn: finanzasApi.marcarLeidas,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['finanzas-alertas'] }),
+    onError: () => {
+      void queryClient.invalidateQueries({ queryKey: ['finanzas-alertas'] });
+      push({ type: 'error', title: 'No se pudo actualizar', message: 'Las notificaciones siguen pendientes de lectura.' });
+    },
+  });
 
   const logout = () => {
     void apiFetch<void>('/auth/logout/', { method: 'POST' }).catch(() => undefined);
@@ -84,9 +107,11 @@ export function AppShell({ children }: { children: ReactNode }) {
       <header className="jg-topbar"><button className="jg-icon-button jg-topbar__menu" aria-label="Abrir menú" onClick={() => setSidebar(true)}><Menu /></button><div className="jg-topbar__crumb">Panel <span>/</span> <b>Resumen</b></div>
         <div className="jg-topbar__actions"><button className={`cash-topbar-status${cajaActual.data?.turno ? ' cash-topbar-status--open' : ''}${cajaActual.isError ? ' cash-topbar-status--error' : ''}`} onClick={() => navigate('/cajas')} aria-label={`Estado de caja: ${cajaActual.isError ? 'no disponible' : cajaActual.data?.turno ? 'abierta' : 'cerrada'}`}><i />{cajaActual.isLoading ? 'Consultando caja' : cajaActual.isError ? 'Caja no disponible' : cajaActual.data?.turno ? `Abierta · ${cajaActual.data.turno.caja_nombre}` : 'Caja cerrada'}</button><button className="jg-icon-button" aria-label={theme === 'light' ? 'Activar tema oscuro' : 'Activar tema claro'} onClick={toggleTheme}>{theme === 'light' ? <Moon size={19} /> : <Sun size={19} />}</button>
           <div className="jg-notification"><button className="jg-icon-button jg-notification__trigger" aria-label={`Notificaciones, ${unread} sin leer`} aria-expanded={open} onClick={() => setOpen(!open)}><Bell size={19} />{unread > 0 && <i />}</button>
-            {open && <><button className="jg-dismiss" aria-label="Cerrar notificaciones" onClick={() => setOpen(false)} /><section className="jg-notification__panel" aria-label="Centro de notificaciones"><header><div><b>Notificaciones</b><span>{unread} nuevas</span></div><button className="jg-text-button" onClick={() => items.forEach(item => markRead(item.id))}>Marcar leídas</button></header>
+            {open && <><button className="jg-dismiss" aria-label="Cerrar notificaciones" onClick={() => setOpen(false)} /><section className="jg-notification__panel" aria-label="Centro de notificaciones"><header><div><b>Notificaciones</b><span>{unread} nuevas</span></div><button className="jg-text-button" disabled={!unread || markNotificationsRead.isPending} onClick={() => { const keys = items.filter(item => !item.read).map(item => item.id); keys.forEach(markRead); if (keys.length) markNotificationsRead.mutate(keys); }}>Marcar leídas</button></header>
               {'Notification' in window && Notification.permission !== 'granted' && <button className="jg-notification__push" onClick={() => void activatePush()}>Activar avisos de este dispositivo</button>}
-              {items.map(item => <button className={`jg-notification__item${item.read ? '' : ' jg-notification__item--unread'}`} key={item.id} onClick={() => markRead(item.id)}><span className={`jg-notification__icon jg-notification__icon--${item.kind}`}><Bell size={16} /></span><span><b>{item.title}</b><small>{item.detail}</small><em>{item.createdAt}</em></span></button>)}<footer>Ver todas las notificaciones</footer></section></>}
+              {notificationQuery.isError && <p className="jg-notification__error" role="alert">No se pudieron cargar las notificaciones.</p>}
+              {notificationQuery.isLoading && <p className="jg-notification__error">Cargando notificaciones…</p>}
+              {items.map(item => <button className={`jg-notification__item${item.read ? '' : ' jg-notification__item--unread'}`} key={item.id} onClick={() => { if (!item.read) { markRead(item.id); markNotificationsRead.mutate([item.id]); } if (item.id.startsWith('rental-')) { setOpen(false); navigate('/alquileres'); } }}><span className={`jg-notification__icon jg-notification__icon--${item.kind}`}><Bell size={16} /></span><span><b>{item.title}</b><small>{item.detail}</small><em>{item.createdAt}</em></span></button>)}{!items.length && !notificationQuery.isLoading && <p className="jg-notification__error">No hay notificaciones activas.</p>}<footer>Centro de notificaciones</footer></section></>}
           </div><span className="jg-topbar__divider" /><button className="jg-topbar__user"><span className="jg-avatar">{user?.name.slice(0, 1) ?? 'U'}</span><span><b>{user?.name ?? 'Usuario'}</b><small>{user?.role === 'ADMIN' ? 'Administrador' : 'Cajero'}</small></span><ChevronDown size={15} /></button>
         </div>
       </header>{children}

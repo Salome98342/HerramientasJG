@@ -43,3 +43,21 @@ class Gasto(BaseModelo):
         verbose_name='Gasto'; verbose_name_plural='Gastos'
         constraints=[models.CheckConstraint(condition=Q(valor__gt=0), name='ck_gasto_valor_gt_0')]
         indexes=[models.Index(fields=['negocio','fecha']), models.Index(fields=['negocio','categoria']), models.Index(fields=['negocio','medio_pago'])]
+
+
+class AlertaLeida(BaseModelo):
+    usuario = models.ForeignKey(
+        'core.Usuario', on_delete=models.CASCADE, related_name='alertas_leidas',
+    )
+    clave = models.CharField(max_length=160)
+    leida_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Alerta leída'
+        verbose_name_plural = 'Alertas leídas'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['negocio', 'usuario', 'clave'],
+                name='uq_alerta_leida_usuario_clave',
+            ),
+        ]

@@ -12,8 +12,19 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from core.auth import csrf_cookie
 from core.auth_views import LoginView, LogoutView, MeView, RefreshView
 from core.health_views import health
+from alquileres.views import AlertasAlquilerView, AlquilerViewSet, ArticuloAlquilerViewSet, ReciboAlquilerViewSet
 from cajas.views import CajaViewSet, TurnoCajaViewSet
 from inventario.views import AjusteView, AlertasStockView, CategoriaViewSet, CompraViewSet, ProductoViewSet, ProveedorViewSet
+from ventas.views import AlertasVentasView, ClienteViewSet, VentaViewSet
+from finanzas.views import (
+    CategoriaGastoListView,
+    DashboardResumenView,
+    GastoListCreateView,
+    NotificacionesLeidasView,
+    NotificacionesView,
+    ReporteExcelView,
+    ReporteView,
+)
 
 router = DefaultRouter()
 router.register('cajas/turnos', TurnoCajaViewSet, basename='turno-caja')
@@ -21,7 +32,12 @@ router.register('cajas', CajaViewSet, basename='caja')
 router.register('inventario/categorias', CategoriaViewSet, basename='categoria-producto')
 router.register('inventario/proveedores', ProveedorViewSet, basename='proveedor')
 router.register('inventario/productos', ProductoViewSet, basename='producto-venta')
+router.register('inventario/alquiler', ArticuloAlquilerViewSet, basename='articulo-alquiler')
 router.register('inventario/compras', CompraViewSet, basename='compra-inventario')
+router.register('clientes', ClienteViewSet, basename='cliente')
+router.register('ventas', VentaViewSet, basename='venta')
+router.register('alquileres', AlquilerViewSet, basename='alquiler')
+router.register('recibos-alquiler', ReciboAlquilerViewSet, basename='recibo-alquiler')
 
 
 def protect_drf_csrf(view):
@@ -45,6 +61,15 @@ def protect_drf_csrf(view):
     return protected
 
 urlpatterns = [
+    path('api/gastos/categorias/', CategoriaGastoListView.as_view(), name='categorias-gasto'),
+    path('api/gastos/', GastoListCreateView.as_view(), name='gastos'),
+    path('api/reportes/', ReporteView.as_view(), name='reportes'),
+    path('api/reportes/exportar-excel/', ReporteExcelView.as_view(), name='reportes-excel'),
+    path('api/dashboard/resumen/', DashboardResumenView.as_view(), name='dashboard-resumen'),
+    path('api/notificaciones/alertas/', NotificacionesView.as_view(), name='notificaciones-alertas'),
+    path('api/notificaciones/marcar-leidas/', NotificacionesLeidasView.as_view(), name='notificaciones-leidas'),
+    path('api/alquileres/alertas/', AlertasAlquilerView.as_view(), name='alquileres-alertas'),
+    path('api/ventas/alertas/', AlertasVentasView.as_view(), name='ventas-alertas'),
     path('api/', include(router.urls)),
     path('api/inventario/ajustes/', AjusteView.as_view(), name='inventario-ajuste'),
     path('api/inventario/alertas-stock/', AlertasStockView.as_view(), name='inventario-alertas-stock'),

@@ -1,11 +1,14 @@
-import { useEffect, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from 'react';
+import { forwardRef, useEffect, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 export function Button({ variant = 'secondary', className = '', ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'danger' }) {
   return <button className={`jg-button jg-button--${variant} ${className}`.trim()} {...props} />;
 }
-export function Input({ className = '', ...props }: InputHTMLAttributes<HTMLInputElement>) { return <input className={`jg-input ${className}`.trim()} {...props} />; }
+export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(
+  ({ className = '', ...props }, ref) => <input ref={ref} className={`jg-input ${className}`.trim()} {...props} />,
+);
+Input.displayName = 'Input';
 export function Select({ className = '', children, ...props }: SelectHTMLAttributes<HTMLSelectElement>) { return <select className={`jg-select ${className}`.trim()} {...props}>{children}</select>; }
 export function Badge({ tone = 'neutral', children }: { tone?: 'neutral' | 'success' | 'warning' | 'danger' | 'info'; children: ReactNode }) { return <span className={`jg-badge jg-badge--${tone}`}>{children}</span>; }
 export function Card({ className = '', children }: { className?: string; children: ReactNode }) { return <section className={`jg-card ${className}`.trim()}>{children}</section>; }

@@ -10,3 +10,6 @@
 8. **DIAN**: no hay modelos DIAN en módulo 1. `Venta` conserva cliente, documento y consecutivo interno para poder agregar luego `FacturaElectronica` 1:1.
 9. **Multi-negocio**: esquema compartido con FK `negocio`; no se usan PostgreSQL schemas por cliente.
 10. **Borrado**: documentos y relaciones históricas usan `PROTECT`; catálogos operativos usan `activo`.
+11. **Separados cancelados**: la API permite decidir por separado (`devolver_abonos`, por defecto `true`) si se reembolsan los abonos. El reembolso se registra como egreso por cada medio de pago en el turno abierto; si se elige `false`, los abonos quedan como pagos no reembolsables y se conserva el motivo de cancelación. Nunca se borran ni se editan movimientos históricos. Por eso, reembolsar exige que el usuario tenga un turno abierto.
+12. **Cambio en ventas**: el cambio se descuenta primero del efectivo recibido y los abonos/movimientos de caja registran únicamente el importe neto aplicado a la venta. El valor de cambio recibido se conserva en `Venta.cambio` para auditoría.
+13. **Anulaciones**: solo un administrador puede anular. Los abonos registrados se revierten como egresos por su medio original en el turno abierto del administrador y el inventario se reintegra con un movimiento trazable; los documentos y movimientos originales permanecen intactos.

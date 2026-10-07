@@ -29,4 +29,7 @@
 @import './pages/chart.css';
 @import './pages/inventario.css';
 @import './pages/cajas.css';
+@import './pages/sales.css';
+@import './pages/alquileres.css';
+@import './pages/finanzas.css';
 @import './utilities/utilities.css';

@@ -1,0 +1,45 @@
+.finance-page{display:grid;gap:var(--space-5)}
+.finance-expenses-layout{display:grid;grid-template-columns:minmax(290px,.8fr) minmax(0,1.6fr);align-items:start;gap:var(--space-5)}
+.finance-form,.finance-history,.finance-chart-card,.finance-data-card{padding:var(--space-5)}
+.finance-form{display:grid;gap:var(--space-4)}
+.finance-form h2,.finance-history h2,.finance-chart-card h2,.finance-data-card h2{font-size:var(--text-base)}
+.finance-form>label,.finance-filters>label,.finance-period>label{display:grid;gap:var(--space-2);color:var(--color-text-secondary);font-size:var(--text-xs);font-weight:var(--weight-semibold)}
+.finance-checkbox{display:flex!important;grid-template-columns:auto 1fr;align-items:center;gap:var(--space-2)!important;font-weight:var(--weight-medium)!important}
+.finance-checkbox input{accent-color:var(--color-primary)}
+.finance-hint,.finance-chart-card header p{color:var(--color-text-muted);font-size:var(--text-xs)}
+.finance-history{min-width:0}
+.finance-history__heading{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3)}
+.finance-history__heading p,.finance-chart-card header p{margin-top:4px;color:var(--color-text-muted);font-size:var(--text-xs)}
+.finance-history__heading>strong{font-size:var(--text-lg);white-space:nowrap}
+.finance-filters,.finance-period{display:flex;align-items:end;gap:var(--space-3);flex-wrap:wrap;margin:var(--space-4) 0}
+.finance-filters>label{flex:1 1 130px}
+.finance-period{padding:var(--space-4)}
+.finance-period>label{flex:0 1 190px}
+.finance-period>span{color:var(--color-danger);font-size:var(--text-xs)}
+.finance-table-wrap{width:100%;overflow:auto}
+.finance-table{width:100%;border-collapse:collapse;text-align:left;font-size:var(--text-xs)}
+.finance-table th,.finance-table td{padding:12px 10px;border-bottom:1px solid var(--color-border-subtle);white-space:nowrap}
+.finance-table th{color:var(--color-text-muted);font-weight:var(--weight-semibold)}
+.finance-table td{color:var(--color-text-secondary)}
+.finance-report-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--space-4)}
+.finance-report-metric{display:grid;gap:var(--space-3);padding:var(--space-5)}
+.finance-report-metric>span{color:var(--color-text-secondary);font-size:var(--text-xs)}
+.finance-report-metric>strong{font-size:clamp(1.1rem,1.6vw,1.55rem);letter-spacing:-.04em;white-space:nowrap}
+.finance-report-metric--net{border-color:color-mix(in srgb,var(--color-success) 40%,var(--color-border-subtle))}
+.finance-report-metric--net>strong{color:var(--color-success)}
+.finance-chart-grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(290px,1fr);gap:var(--space-5)}
+.finance-chart-card{min-width:0}
+.finance-chart-card header{margin-bottom:var(--space-3)}
+.finance-chart{height:300px}
+.finance-chart-card--wide{grid-column:1/-1}
+.finance-data-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-5)}
+.finance-data-card{min-width:0}
+.finance-data-card h2{margin-bottom:var(--space-4)}
+.finance-empty-copy{padding:var(--space-4) 0;color:var(--color-text-muted);font-size:var(--text-xs)}
+.finance-skeleton{display:block;width:100%;height:40px}
+.finance-skeleton-list{display:grid;gap:var(--space-3);margin-top:var(--space-4)}
+.finance-report-skeleton{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--space-4)}
+.finance-report-skeleton .finance-skeleton,.finance-dashboard-skeleton{height:130px}
+.jg-notification__error{padding:var(--space-4);color:var(--color-text-muted);font-size:var(--text-xs)}
+@media(max-width:1000px){.finance-expenses-layout{grid-template-columns:1fr}.finance-report-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.finance-chart-grid{grid-template-columns:1fr}.finance-chart-card--wide{grid-column:auto}}
+@media(max-width:650px){.finance-data-grid{grid-template-columns:1fr}.finance-report-metrics,.finance-report-skeleton{grid-template-columns:repeat(2,minmax(0,1fr))}.finance-chart{height:250px}.finance-history__heading{align-items:flex-start;flex-direction:column}.finance-period{align-items:stretch}.finance-period>label{flex-basis:100%}}

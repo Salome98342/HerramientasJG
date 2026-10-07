@@ -15,10 +15,14 @@ class Venta(BaseModelo):
     subtotal = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     descuento = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    cambio = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     saldo_pendiente = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    entregado = models.BooleanField(default=False)
+    motivo_anulacion = models.CharField(max_length=255, blank=True)
+    motivo_cancelacion = models.CharField(max_length=255, blank=True)
     class Meta:
         verbose_name='Venta'; verbose_name_plural='Ventas'
-        constraints=[models.UniqueConstraint(fields=['negocio','numero'], name='uq_venta_numero_negocio'), models.CheckConstraint(condition=Q(subtotal__gte=0), name='ck_venta_subtotal_gte_0'), models.CheckConstraint(condition=Q(descuento__gte=0), name='ck_venta_descuento_gte_0'), models.CheckConstraint(condition=Q(total__gte=0), name='ck_venta_total_gte_0'), models.CheckConstraint(condition=Q(saldo_pendiente__gte=0), name='ck_venta_saldo_gte_0')]
+        constraints=[models.UniqueConstraint(fields=['negocio','numero'], name='uq_venta_numero_negocio'), models.CheckConstraint(condition=Q(subtotal__gte=0), name='ck_venta_subtotal_gte_0'), models.CheckConstraint(condition=Q(descuento__gte=0), name='ck_venta_descuento_gte_0'), models.CheckConstraint(condition=Q(total__gte=0), name='ck_venta_total_gte_0'), models.CheckConstraint(condition=Q(cambio__gte=0), name='ck_venta_cambio_gte_0'), models.CheckConstraint(condition=Q(saldo_pendiente__gte=0), name='ck_venta_saldo_gte_0')]
         indexes=[models.Index(fields=['negocio','fecha']), models.Index(fields=['negocio','cliente']), models.Index(fields=['negocio','estado']), models.Index(fields=['negocio','numero'])]
 
 class DetalleVenta(BaseModelo):

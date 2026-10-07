@@ -36,6 +36,7 @@ def registrar_compra(*, negocio, usuario, proveedor, detalles):
 @transaction.atomic
 def registrar_gasto(
     *, negocio, usuario, categoria, valor, descripcion, medio_pago, turno=None,
+    desde_caja=None,
     fecha=None,
 ):
     if negocio is None or usuario.negocio_id != negocio.pk:
@@ -44,10 +45,18 @@ def registrar_gasto(
         pk=categoria.pk, negocio=negocio, activo=True,
     ).exists():
         raise ValueError('La categoría del gasto no existe o está inactiva.')
-    turno_abierto = obtener_turno_abierto(usuario)
-    if turno is not None and getattr(turno, 'pk', turno) != turno_abierto.pk:
-        raise ValueError('El gasto debe registrarse en tu turno de caja abierto.')
-    turno = TurnoCaja.objects.select_for_update().get(pk=turno_abierto.pk, negocio=negocio)
+    tiene_turno_abierto = desde_caja is None and TurnoCaja.objects.filter(
+        negocio=negocio, usuario=usuario, estado=TurnoCaja.Estado.ABIERTO,
+    ).exists()
+    if desde_caja or turno is not None or tiene_turno_abierto:
+        turno_abierto = obtener_turno_abierto(usuario)
+        if turno is not None and getattr(turno, 'pk', turno) != turno_abierto.pk:
+            raise ValueError('El gasto debe registrarse en tu turno de caja abierto.')
+        turno = TurnoCaja.objects.select_for_update().get(
+            pk=turno_abierto.pk, negocio=negocio,
+        )
+    else:
+        turno = None
     descripcion = str(descripcion).strip()
     if not descripcion:
         raise ValueError('La descripción del gasto es obligatoria.')
@@ -69,14 +78,15 @@ def registrar_gasto(
         medio_pago=medio_pago,
         turno=turno,
     )
-    registrar_movimiento(
-        negocio=negocio,
-        usuario=usuario,
-        turno=turno,
-        tipo=MovimientoCaja.Tipo.EGRESO,
-        concepto=descripcion,
-        medio_pago=medio_pago,
-        valor=gasto.valor,
-        gasto=gasto,
-    )
+    if turno is not None:
+        registrar_movimiento(
+            negocio=negocio,
+            usuario=usuario,
+            turno=turno,
+            tipo=MovimientoCaja.Tipo.EGRESO,
+            concepto=descripcion,
+            medio_pago=medio_pago,
+            valor=gasto.valor,
+            gasto=gasto,
+        )
     return gasto

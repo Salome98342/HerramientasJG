@@ -68,6 +68,30 @@ OpenAPI está en `/api/schema/` y Swagger UI en `/api/docs/` (ambos bajo la pol�
 
 Una restricción de base de datos impide más de un turno abierto por usuario o por caja. `cajas.services.obtener_turno_abierto(usuario)` devuelve el turno activo o genera un error claro; `registrar_movimiento` serializa los movimientos contra el cierre para no permitir líneas tardías. Los pagos de ventas/abonos y recibos de alquiler, así como los gastos registrados mediante `finanzas.services.registrar_gasto`, escriben en el libro. Un turno cerrado es de solo lectura desde la API.
 
+## Inventario de alquiler, alquileres y recibos
+
+El inventario de alquiler (`/api/inventario/alquiler/`) es independiente del inventario de venta. El catálogo solo permite su administración a ADMIN; ADMIN y CAJERO pueden consultarlo. Artículos con unidades alquiladas no se pueden reducir por debajo de esa cantidad. El router `/api/alquileres/` permite registrar/listar/consultar alquileres, devolver cantidades parciales o totales, recibir abonos y consultar las listas `vencidos` y `por_vencer` (24 horas). La anulación requiere ADMIN y motivo; las unidades pendientes vuelven al inventario y todo recibo cobrado se reintegra con un egreso en el turno abierto del administrador.
+
+Al registrar un depósito/anticipo o un pago se emite un recibo de caja en `/api/recibos-alquiler/`, con consecutivo independiente por negocio; cada recibo crea un movimiento de ingreso. El endpoint `/api/recibos-alquiler/{id}/pdf/` entrega el comprobante PDF con negocio, cliente, artículos, valores, medio de pago y firma. Es un recibo operativo de caja, no se conecta a DIAN ni a facturación electrónica. En la devolución el cargo se calcula según unidades devueltas y días reales cobrables (mínimo un día); el recargo de demora añade la tarifa diaria multiplicada por días de retraso y por `ALQUILER_RECARGO_DIARIO_MULTIPLICADOR` (default `1`).
+
+Programa `python manage.py marcar_alquileres_vencidos` periódicamente para marcar registros vencidos; la consulta de alertas también sincroniza el estado. El frontend ofrece `/alquileres` y `/inventario-alquiler`, con alertas en la campana y descarga de PDFs.
+
+## Gastos, reportes y dashboard
+
+| Método | Ruta | Autorización | Uso |
+|---|---|---|---|
+| GET | `/api/gastos/categorias/` | ADMIN/CAJERO | Categorías de gasto activas del negocio. |
+| GET/POST | `/api/gastos/` | ADMIN/CAJERO | Consulta por `desde`, `hasta`, `categoria`; registra categoría, valor, descripción, fecha y medio de pago. |
+| GET | `/api/reportes/?desde=AAAA-MM-DD&hasta=AAAA-MM-DD` | ADMIN | Resumen y desglose financiero del periodo. |
+| GET | `/api/reportes/exportar-excel/?desde=AAAA-MM-DD&hasta=AAAA-MM-DD` | ADMIN | Libro Excel con resumen, pagos, gastos, ventas, alquileres, cartera y turnos. |
+| GET | `/api/dashboard/resumen/` | ADMIN/CAJERO | Ventas del día, caja, alertas y serie diaria; inversión y ganancia solo para ADMIN. |
+| GET | `/api/notificaciones/alertas/` | ADMIN/CAJERO | Alertas consolidadas de inventario, alquiler, cartera y cierres de caja. |
+| POST | `/api/notificaciones/marcar-leidas/` | ADMIN/CAJERO | Recibe `{"claves":["stock-1"]}` y persiste las alertas leídas por usuario. |
+
+Los reportes usan ORM, acotan cada consulta por negocio y rango semiabierto (incluye ambos días solicitados), y excluyen ventas anuladas/canceladas y compras anuladas. El costo vendido toma el `costo_unitario` guardado en cada detalle de venta. La ganancia bruta suma ventas y alquileres, y resta costo vendido y costo estimado del alquiler; la ganancia neta resta gastos operativos. El costo de alquiler se estima con `costo_diario` por los días previstos. Los ingresos por medio de pago provienen de movimientos de caja; gastos pagados fuera de caja se incluyen en gasto operativo, no en el libro de caja. No se usa partida doble.
+
+El registro de gasto puede marcar `desde_caja`; si se activa exige un turno abierto propio y crea el movimiento de egreso en la misma transacción. Sin esa marca, el gasto queda registrado sin movimiento de caja.
+
 ## Variables y despliegue
 
 Consulta `.env.example`. `DEBUG` tiene default `False`; en local se establece a `True` explícitamente. `ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS` y `CSRF_TRUSTED_ORIGINS` son listas explícitas y no admiten wildcard. El frontend de desarrollo llama al mismo origen `/api`; Vite lo proxya al backend en `127.0.0.1:8000`, por lo que la cookie permanece same-origin.
@@ -82,7 +106,7 @@ cd Backend
 python -m pytest
 ```
 
-Las pruebas requieren una base PostgreSQL de test accesible con la conexión de `DATABASE_URL`. Cubren login correcto/incorrecto, error genérico, cookie, CSRF, bloqueo Axes, rotación y blacklist, logout, `/me`, permiso ADMIN y aislamiento del queryset por negocio.
+Las pruebas requieren una base PostgreSQL de test accesible con la conexión de `DATABASE_URL`. Cubren login correcto/incorrecto, error genérico, cookie, CSRF, bloqueo Axes, rotación y blacklist, logout, `/me`, permiso ADMIN y aislamiento del queryset por negocio. Finanzas verifica a mano el resultado de ventas, costo vendido, alquileres, gastos y cartera; valida también permisos por rol, lectura de alertas y que el XLSX generado puede abrirse y contiene las hojas esperadas.
 
 ## Checklist manual
 
@@ -97,4 +121,4 @@ Las pruebas requieren una base PostgreSQL de test accesible con la conexión de 
 
 ### Límites de esta entrega
 
-Las APIs de autenticación, inventario y cajas/turnos están operativas. Ventas, alquileres y reportes siguen completándose por fases. HTTPS real, gestión/rotación de claves, backups, proxy confiable, observabilidad centralizada y despliegue seguro dependen del entorno de producción.
+HTTPS real, gestión/rotación de claves, backups, proxy confiable, observabilidad centralizada y despliegue seguro dependen del entorno de producción.
