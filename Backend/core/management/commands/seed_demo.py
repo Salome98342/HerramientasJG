@@ -18,14 +18,11 @@ from finanzas.services import registrar_gasto
 class Command(BaseCommand):
     help='Crea datos de prueba completos para Herramientas JG.'
     def add_arguments(self, parser):
-        parser.add_argument('--password', default=None)
-        parser.add_argument('--allow-production', action='store_true', help='Confirma explícitamente ejecutar datos demo con DEBUG=False.')
+        parser.add_argument('--password', required=True)
     def handle(self, *args, **opts):
-        if not settings.DEBUG and not opts['allow_production']:
-            raise CommandError('seed_demo está bloqueado con DEBUG=False. Usa --allow-production solo si confirmas que quieres insertar datos de demostración.')
-        if not settings.DEBUG and not opts['password']:
-            raise CommandError('Con DEBUG=False debes especificar una contraseña con --password junto a --allow-production.')
-        pw=opts['password'] or 'Demo12345!'
+        if not settings.DEBUG:
+            raise CommandError('seed_demo est? bloqueado cuando DEBUG=False.')
+        pw=opts['password']
         negocio,_=Negocio.objects.get_or_create(nombre='Herramientas JG', defaults={'nit':'900000000-1'})
         admin,_=Usuario.objects.get_or_create(username='admin_jg', defaults={'negocio':negocio,'rol':'ADMIN','email':'admin@herramientasjg.local','is_staff':True,'is_superuser':True})
         validate_password(pw, user=admin)

@@ -10,11 +10,11 @@ from rest_framework.views import APIView
 from rest_framework.generics import GenericAPIView
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.core.management import call_command
 from django.core.management.base import CommandError
 
 from core.models import Cliente, Negocio
 from core.permissions import BusinessQuerysetMixin, IsAdmin
-from core.management.commands.seed_demo import Command as SeedDemoCommand
 
 User = get_user_model()
 LOGIN_URL = '/api/auth/login/'
@@ -178,10 +178,14 @@ def test_axes_blocks_after_five_failed_logins(users):
 
 
 @pytest.mark.django_db
-def test_seed_demo_requires_explicit_production_flag_and_password(settings):
+def test_seed_demo_is_blocked_in_production_even_with_password(settings):
     settings.DEBUG = False
-    command = SeedDemoCommand()
-    with pytest.raises(CommandError, match='bloqueado con DEBUG=False'):
-        command.handle(allow_production=False, password='')
-    with pytest.raises(CommandError, match='debes especificar una contraseña'):
-        command.handle(allow_production=True, password='')
+    with pytest.raises(CommandError, match='bloqueado cuando DEBUG=False'):
+        call_command('seed_demo', password='SeedTest-Strong-2026!')
+
+
+@pytest.mark.django_db
+def test_seed_demo_always_requires_password(settings):
+    settings.DEBUG = True
+    with pytest.raises(CommandError, match='password'):
+        call_command('seed_demo')
