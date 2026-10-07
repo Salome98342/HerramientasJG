@@ -4,6 +4,7 @@ from pathlib import Path
 
 import environ
 from django.core.exceptions import ImproperlyConfigured
+from config.security import validate_production_configuration
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 env = environ.Env(DEBUG=(bool, False))
@@ -60,6 +61,14 @@ TEMPLATES = [{
 }]
 WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {'default': env.db('DATABASE_URL', default='postgresql://postgres:postgres@localhost:5432/herramientas_jg')}
+if not DEBUG:
+    validate_production_configuration(
+        secret_key=SECRET_KEY,
+        database_password=DATABASES['default'].get('PASSWORD'),
+        allowed_hosts=ALLOWED_HOSTS,
+        cors_origins=env.list('CORS_ALLOWED_ORIGINS', default=['http://localhost:5173', 'http://127.0.0.1:5173']),
+        csrf_origins=env.list('CSRF_TRUSTED_ORIGINS', default=env.list('CORS_ALLOWED_ORIGINS', default=['http://localhost:5173', 'http://127.0.0.1:5173'])),
+    )
 AUTH_USER_MODEL = 'core.Usuario'
 LANGUAGE_CODE = 'es-co'
 TIME_ZONE = 'America/Bogota'
