@@ -9,7 +9,10 @@ export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputE
   ({ className = '', ...props }, ref) => <input ref={ref} className={`jg-input ${className}`.trim()} {...props} />,
 );
 Input.displayName = 'Input';
-export function Select({ className = '', children, ...props }: SelectHTMLAttributes<HTMLSelectElement>) { return <select className={`jg-select ${className}`.trim()} {...props}>{children}</select>; }
+export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSelectElement>>(
+  ({ className = '', children, ...props }, ref) => <select ref={ref} className={`jg-select ${className}`.trim()} {...props}>{children}</select>,
+);
+Select.displayName = 'Select';
 export function Badge({ tone = 'neutral', children }: { tone?: 'neutral' | 'success' | 'warning' | 'danger' | 'info'; children: ReactNode }) { return <span className={`jg-badge jg-badge--${tone}`}>{children}</span>; }
 export function Card({ className = '', children }: { className?: string; children: ReactNode }) { return <section className={`jg-card ${className}`.trim()}>{children}</section>; }
 export function Skeleton({ className = '' }: { className?: string }) { return <span aria-hidden="true" className={`jg-skeleton ${className}`.trim()} />; }

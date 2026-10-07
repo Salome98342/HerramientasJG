@@ -108,11 +108,16 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
 export async function apiDownload(path: string, fallbackName: string): Promise<void> {
   const headers = new Headers();
   if (accessToken) headers.set('Authorization', `Bearer ${accessToken}`);
-  let response = await fetch(`${API_URL}${path}`, { credentials: 'include', headers });
+  // API resource links may already include the API prefix (for example `/api/...`).
+  // API_URL includes that prefix in the default local setup.
+  const apiPath = API_URL.endsWith('/api') && path.startsWith('/api/')
+    ? path.slice('/api'.length)
+    : path;
+  let response = await fetch(`${API_URL}${apiPath}`, { credentials: 'include', headers });
   if (response.status === 401 && accessToken) {
     if (await refresh()) {
       headers.set('Authorization', `Bearer ${accessToken}`);
-      response = await fetch(`${API_URL}${path}`, { credentials: 'include', headers });
+      response = await fetch(`${API_URL}${apiPath}`, { credentials: 'include', headers });
     }
     if (response.status === 401) expireSession();
   }

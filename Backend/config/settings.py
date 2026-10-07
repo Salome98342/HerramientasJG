@@ -60,15 +60,18 @@ TEMPLATES = [{
     ]},
 }]
 WSGI_APPLICATION = 'config.wsgi.application'
-DATABASES = {'default': env.db('DATABASE_URL', default='postgresql://postgres:postgres@localhost:5432/herramientas_jg')}
-if not DEBUG:
-    validate_production_configuration(
-        secret_key=SECRET_KEY,
-        database_password=DATABASES['default'].get('PASSWORD'),
-        allowed_hosts=ALLOWED_HOSTS,
-        cors_origins=env.list('CORS_ALLOWED_ORIGINS', default=['http://localhost:5173', 'http://127.0.0.1:5173']),
-        csrf_origins=env.list('CSRF_TRUSTED_ORIGINS', default=env.list('CORS_ALLOWED_ORIGINS', default=['http://localhost:5173', 'http://127.0.0.1:5173'])),
-    )
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': env('DB_NAME', default='herramientas_jg'),
+        'USER': env('DB_USER', default='postgres'),
+        'PASSWORD': env('DB_PASSWORD'),
+        'HOST': env('DB_HOST', default='localhost'),
+        'PORT': env('DB_PORT', default='5432'),
+    }
+}
+
 AUTH_USER_MODEL = 'core.Usuario'
 LANGUAGE_CODE = 'es-co'
 TIME_ZONE = 'America/Bogota'
