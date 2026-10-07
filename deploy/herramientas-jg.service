@@ -1,0 +1,23 @@
+[Unit]
+Description=Herramientas JG Django API
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/herramientas-jg/Backend
+EnvironmentFile=/etc/herramientas-jg.env
+ExecStartPre=/opt/herramientas-jg/Backend/.venv/bin/python manage.py migrate --noinput
+ExecStartPre=/opt/herramientas-jg/Backend/.venv/bin/python manage.py collectstatic --noinput
+ExecStart=/opt/herramientas-jg/Backend/.venv/bin/gunicorn config.wsgi:application --bind 127.0.0.1:8000 --workers 3 --access-logfile - --error-logfile -
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/herramientas-jg/Backend/staticfiles
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,15 @@
+.env
+.env.*
+!.env.production.example
+!Backend/.env.example
+!Backend/.env.production.example
+!Frontend/.env.example
+certs/*.pem
+backups/
+Backend/.venv/
+Backend/.pytest_cache/
+Backend/**/__pycache__/
+Backend/staticfiles/
+Frontend/node_modules/
+Frontend/dist/
+Frontend/*.tsbuildinfo

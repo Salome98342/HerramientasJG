@@ -1,0 +1,15 @@
+[Unit]
+Description=Backup PostgreSQL de Herramientas JG
+After=postgresql.service
+
+[Service]
+Type=oneshot
+User=postgres
+Group=postgres
+EnvironmentFile=/etc/herramientas-jg-backup.env
+ExecStart=/opt/herramientas-jg/deploy/backup-postgres.sh
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/backups/herramientas-jg

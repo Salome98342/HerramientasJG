@@ -119,6 +119,31 @@ Las pruebas requieren una base PostgreSQL de test accesible con la conexión de 
 7. Cierra sesión: refresh queda en blacklist, cookie se borra y otras pestañas vuelven al login.
 8. Como cajero, verifica que la interfaz oculta usuarios/reportes y que un endpoint protegido con `IsAdmin` responde 403. La prueba automatizada cubre la clase.
 
-### Límites de esta entrega
+### Importación de inventario desde Excel
 
-HTTPS real, gestión/rotación de claves, backups, proxy confiable, observabilidad centralizada y despliegue seguro dependen del entorno de producción.
+La pantalla **Importar inventario** es exclusiva de ADMIN. Descarga la plantilla `.xlsx`, carga las dos hojas y corrige los errores del reporte antes de confirmar. La importación es por referencia: no actualiza registros existentes y solo crea movimientos de existencia inicial para registros nuevos.
+
+Endpoints ADMIN:
+
+| Método | Ruta | Uso |
+|---|---|---|
+| GET | `/api/inventario/importaciones/plantilla/` | Descarga las hojas `Venta` y `Alquiler` con encabezados oficiales. |
+| POST | `/api/inventario/importaciones/previsualizar/` | Recibe el archivo `.xlsx` en `archivo` y devuelve errores y resumen, sin escrituras. |
+| POST | `/api/inventario/importaciones/confirmar/` | Revalida el libro completo y crea las filas solo cuando no hay errores. |
+
+Límites: máximo 10 MB, referencias únicas por hoja y archivo, valores con máximo dos decimales. Campos, tipos y columnas se describen en [la guía para el cliente](./docs/GUIA_CLIENTE.md). El comando de soporte acepta el mismo formato:
+
+```powershell
+python manage.py importar_productos_excel inventario.xlsx --negocio-id 1 --usuario-id 1 --dry-run
+python manage.py importar_productos_excel inventario.xlsx --negocio-id 1 --usuario-id 1
+```
+
+`--dry-run` valida e informa cuántas filas nuevas se crearían, sin cambiar la base.
+
+### Fase 6: calidad y despliegue
+
+El recorrido de aceptación del flujo operativo está automatizado en `core/tests/test_flujo_completo.py`. Las pruebas críticas de inventario, ventas/saldos, caja, alquileres y reportes viven en sus respectivos directorios `tests`.
+
+Las listas y detalles relacionados cargan relaciones con `select_related`/`prefetch_related` en consultas de productos, compras, ventas, alquileres, turnos, gastos e informes; los modelos principales tienen índices compuestos por negocio más referencia, fecha, estado, cliente o caja para los filtros usados. Confirma los planes (`EXPLAIN ANALYZE`) y habilita registro de consultas lentas tras cargar una muestra representativa de producción antes de añadir índices adicionales: no hay trazas de datos reales en el entorno de desarrollo.
+
+El [despliegue paso a paso](../README-DEPLOY.md) usa PostgreSQL, Gunicorn, systemd, Nginx/HTTPS y backups programados; no requiere Docker. Consulta el [checklist de seguridad](../docs/SEGURIDAD-CHECKLIST.md) y la [guía rápida por pantalla y rol](./docs/GUIA_CLIENTE.md).

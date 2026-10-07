@@ -8,6 +8,8 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.parsers import MultiPartParser, FormParser
+from django.http import HttpResponse
 
 from core.models import Proveedor
 from core.permissions import IsAdmin, IsAdminOrCajero
@@ -16,6 +18,7 @@ from .models import CategoriaProducto, MovimientoInventario, ProductoVenta
 from .serializers import (AjusteSerializer, CategoriaSerializer, CompraCreateSerializer, CompraSerializer,
                          MovimientoSerializer, ProductoSerializer, ProveedorSerializer)
 from .services import ajustar_inventario, productos_bajo_stock, registrar_compra
+from .importacion import confirmar_importacion, crear_plantilla_excel, validar_archivo_excel
 
 
 class InventarioPagination(PageNumberPagination):
@@ -124,6 +127,65 @@ class AlertasStockView(APIView):
         page = InventarioPagination()
         qs = productos_bajo_stock(request.user.negocio)
         return page.get_paginated_response(ProductoSerializer(page.paginate_queryset(qs, request), many=True, context={'request': request}).data)
+
+
+class PlantillaImportacionView(APIView):
+    permission_classes = [IsAuthenticated, IsAdmin]
+
+    def get(self, request):
+        response = HttpResponse(
+            crear_plantilla_excel(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        )
+        response['Content-Disposition'] = 'attachment; filename="plantilla_inventario_jg.xlsx"'
+        return response
+
+
+class ImportacionInventarioView(APIView):
+    permission_classes = [IsAuthenticated, IsAdmin]
+    parser_classes = [MultiPartParser, FormParser]
+    confirmar = False
+
+    def post(self, request):
+        if not request.user.negocio_id:
+            return Response({'detail': 'El usuario no tiene un negocio asignado.'}, status=400)
+        archivo = request.FILES.get('archivo')
+        if archivo is None:
+            return Response({'detail': 'Adjunta el archivo Excel en el campo archivo.'}, status=400)
+        if not archivo.name.lower().endswith('.xlsx'):
+            return Response({'detail': 'El archivo debe tener formato .xlsx.'}, status=400)
+        from .importacion import MAX_IMPORT_BYTES
+        if archivo.size > MAX_IMPORT_BYTES:
+            return Response({'detail': 'El archivo supera el tamaño máximo permitido de 10 MB.'}, status=400)
+        try:
+            rows, errors = validar_archivo_excel(archivo.read(), request.user.negocio)
+        except ValueError as exc:
+            return Response({'detail': str(exc)}, status=400)
+        report = [row.as_dict() for row in rows]
+        if not self.confirmar:
+            return Response({
+                'filas': report,
+                'errores': errors,
+                'puede_confirmar': not errors,
+                'resumen': {
+                    'filas': len(rows),
+                    'validas': sum(not row.errors and not row.existing for row in rows),
+                    'existentes': sum(row.existing and not row.errors for row in rows),
+                    'invalidas': sum(bool(row.errors) for row in rows),
+                },
+            })
+        if errors:
+            return Response({
+                'detail': 'La importación contiene errores; corrígelos antes de confirmar.',
+                'filas': report,
+                'errores': errors,
+            }, status=400)
+        result = confirmar_importacion(business=request.user.negocio, user=request.user, rows=rows)
+        return Response({'filas': report, **result}, status=201)
+
+
+class ConfirmarImportacionInventarioView(ImportacionInventarioView):
+    confirmar = True
 
 
 class CompraViewSet(viewsets.ModelViewSet):

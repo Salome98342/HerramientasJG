@@ -16,6 +16,7 @@ const nav = [
   { label: 'Créditos y separados', to: '/creditos', icon: WalletCards },
   { label: 'Clientes', to: '/clientes', icon: Users },
   { label: 'Inventario', to: '/inventario', icon: Package },
+  { label: 'Importar inventario', to: '/inventario/importar', icon: Package, adminOnly: true },
   { label: 'Compras', to: '/compras', icon: ClipboardList, adminOnly: true },
   { label: 'Alquileres', to: '/alquileres', icon: Wrench },
   { label: 'Inventario de alquiler', to: '/inventario-alquiler', icon: Package },

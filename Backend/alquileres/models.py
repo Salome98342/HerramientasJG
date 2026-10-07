@@ -18,6 +18,25 @@ class ArticuloAlquiler(BaseModelo):
         constraints=[models.UniqueConstraint(fields=['negocio','referencia'], name='uq_articulo_alquiler_referencia_negocio'), models.CheckConstraint(condition=Q(cantidad_total__gte=0), name='ck_alq_total_gte_0'), models.CheckConstraint(condition=Q(cantidad_disponible__gte=0), name='ck_alq_disp_gte_0'), models.CheckConstraint(condition=Q(cantidad_disponible__lte=models.F('cantidad_total')), name='ck_alq_disp_lte_total'), models.CheckConstraint(condition=Q(tarifa_diaria__gte=0), name='ck_alq_tarifa_gte_0'), models.CheckConstraint(condition=Q(costo_diario__gte=0), name='ck_alq_costo_diario_gte_0'), models.CheckConstraint(condition=Q(valor_reposicion__gte=0), name='ck_alq_reposicion_gte_0')]
         indexes=[models.Index(fields=['negocio','referencia']), models.Index(fields=['negocio','tipo'])]
 
+
+class MovimientoInventarioAlquiler(BaseModelo):
+    class Tipo(models.TextChoices):
+        INICIAL = 'INICIAL', 'Existencia inicial'
+
+    articulo = models.ForeignKey(ArticuloAlquiler, on_delete=models.PROTECT, related_name='movimientos')
+    tipo = models.CharField(max_length=15, choices=Tipo.choices)
+    cantidad = models.DecimalField(max_digits=14, decimal_places=2)
+    motivo = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        verbose_name = 'Movimiento de inventario de alquiler'
+        verbose_name_plural = 'Movimientos de inventario de alquiler'
+        constraints = [
+            models.CheckConstraint(condition=Q(cantidad__gt=0), name='ck_mov_alquiler_cantidad_gt_0'),
+        ]
+        indexes = [models.Index(fields=['negocio', 'articulo', '-creado_en'])]
+
+
 class Alquiler(BaseModelo):
     class Estado(models.TextChoices): ACTIVO='ACTIVO','Activo'; DEVUELTO_PARCIAL='DEVUELTO_PARCIAL','Devuelto parcial'; FINALIZADO='FINALIZADO','Finalizado'; VENCIDO='VENCIDO','Vencido'; ANULADO='ANULADO','Anulado'
     cliente = models.ForeignKey(Cliente, on_delete=models.PROTECT, related_name='alquileres')

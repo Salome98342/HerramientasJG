@@ -14,7 +14,17 @@ from core.auth_views import LoginView, LogoutView, MeView, RefreshView
 from core.health_views import health
 from alquileres.views import AlertasAlquilerView, AlquilerViewSet, ArticuloAlquilerViewSet, ReciboAlquilerViewSet
 from cajas.views import CajaViewSet, TurnoCajaViewSet
-from inventario.views import AjusteView, AlertasStockView, CategoriaViewSet, CompraViewSet, ProductoViewSet, ProveedorViewSet
+from inventario.views import (
+    AjusteView,
+    AlertasStockView,
+    CategoriaViewSet,
+    CompraViewSet,
+    ConfirmarImportacionInventarioView,
+    ImportacionInventarioView,
+    PlantillaImportacionView,
+    ProductoViewSet,
+    ProveedorViewSet,
+)
 from ventas.views import AlertasVentasView, ClienteViewSet, VentaViewSet
 from finanzas.views import (
     CategoriaGastoListView,
@@ -73,6 +83,9 @@ urlpatterns = [
     path('api/', include(router.urls)),
     path('api/inventario/ajustes/', AjusteView.as_view(), name='inventario-ajuste'),
     path('api/inventario/alertas-stock/', AlertasStockView.as_view(), name='inventario-alertas-stock'),
+    path('api/inventario/importaciones/plantilla/', PlantillaImportacionView.as_view(), name='inventario-importacion-plantilla'),
+    path('api/inventario/importaciones/previsualizar/', ImportacionInventarioView.as_view(), name='inventario-importacion-previsualizar'),
+    path('api/inventario/importaciones/confirmar/', ConfirmarImportacionInventarioView.as_view(), name='inventario-importacion-confirmar'),
     path('api/health/', health, name='health'),
     path('admin/', admin.site.urls),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
