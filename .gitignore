@@ -10,6 +10,9 @@ Backend/.venv/
 Backend/.pytest_cache/
 Backend/**/__pycache__/
 Backend/staticfiles/
+!Backend/staticfiles/
+Backend/staticfiles/*
+!Backend/staticfiles/.gitkeep
 Frontend/node_modules/
 Frontend/dist/
 Frontend/*.tsbuildinfo
