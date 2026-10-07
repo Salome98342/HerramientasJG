@@ -1,7 +1,12 @@
 from decimal import Decimal
+from concurrent.futures import ThreadPoolExecutor
+from threading import Barrier
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.core.management import call_command
+from django.db import close_old_connections
+from django.db.models import Sum
 from django.urls import resolve, reverse
 from rest_framework.test import APIClient
 
@@ -46,6 +51,57 @@ def test_compra_actualiza_stock_costo_promedio_y_crea_movimiento(escenario):
     movimiento = MovimientoInventario.objects.get(origen_tipo='COMPRA', origen_id=compra.id)
     assert movimiento.cantidad == Decimal('3')
     assert Consecutivo.objects.get(negocio=data['negocio'], tipo='COMPRA').siguiente == 2
+
+
+@pytest.mark.django_db
+def test_seed_demo_uses_the_shared_purchase_service(settings):
+    settings.DEBUG = True
+    call_command('seed_demo', password='SeedTest-Strong-2026!')
+
+    productos = ProductoVenta.objects.filter(negocio__nombre='Herramientas JG').order_by('referencia')
+    assert productos.count() == 10
+    assert [p.stock_actual for p in productos] == [
+        Decimal('18.00'), Decimal('18.00'), Decimal('17.00'),
+        *[Decimal('20.00')] * 7,
+    ]
+    assert MovimientoInventario.objects.filter(
+        negocio__nombre='Herramientas JG', tipo=MovimientoInventario.Tipo.ENTRADA_COMPRA,
+    ).count() == 10
+    assert CompraInventario.objects.filter(negocio__nombre='Herramientas JG').count() == 1
+
+
+@pytest.mark.django_db(transaction=True)
+def test_compras_concurrentes_bloquean_producto_y_actualizan_costo_ponderado(escenario):
+    data = escenario
+    barrier = Barrier(2)
+
+    def registrar(costo):
+        close_old_connections()
+        try:
+            barrier.wait(timeout=5)
+            return registrar_compra(
+                negocio=data['negocio'],
+                proveedor=data['proveedor'],
+                usuario=User.objects.get(pk=data['admin'].pk),
+                items=[{
+                    'producto': ProductoVenta.objects.get(pk=data['producto'].pk),
+                    'cantidad': Decimal('1'),
+                    'costo_unitario': Decimal(costo),
+                }],
+            )
+        finally:
+            close_old_connections()
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        compras = list(pool.map(registrar, ('200.00', '300.00')))
+
+    data['producto'].refresh_from_db()
+    assert data['producto'].stock_actual == Decimal('7.00')
+    assert data['producto'].costo_promedio == Decimal('142.86')
+    assert sorted(compra.numero for compra in compras) == [1, 2]
+    assert MovimientoInventario.objects.filter(
+        producto=data['producto'], tipo=MovimientoInventario.Tipo.ENTRADA_COMPRA,
+    ).aggregate(total=Sum('cantidad'))['total'] == Decimal('2.00')
 
 
 @pytest.mark.django_db

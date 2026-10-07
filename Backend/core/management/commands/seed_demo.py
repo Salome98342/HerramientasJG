@@ -12,7 +12,7 @@ from cajas.services import abrir_turno
 from ventas.services import registrar_venta, crear_separado
 from alquileres.services import registrar_alquiler, crear_recibo_alquiler
 from finanzas.models import CategoriaGasto
-from finanzas.services import registrar_compra
+from inventario.services import registrar_compra
 from finanzas.services import registrar_gasto
 
 class Command(BaseCommand):
@@ -41,7 +41,15 @@ class Command(BaseCommand):
             productos.append(p)
         proveedor,_=Proveedor.objects.get_or_create(negocio=negocio,nombre='Proveedor Demo',defaults={'creado_por':admin})
         if not ProductoVenta.objects.filter(negocio=negocio, movimientos__tipo='ENTRADA_COMPRA').exists():
-            registrar_compra(negocio=negocio,usuario=admin,proveedor=proveedor,detalles=[{'producto_id':p.id,'cantidad':20,'costo_unitario':Decimal(30000+i*2000)} for i,p in enumerate(productos,1)])
+            registrar_compra(
+                negocio=negocio,
+                usuario=admin,
+                proveedor=proveedor,
+                items=[
+                    {'producto': p, 'cantidad': 20, 'costo_unitario': Decimal(30000 + i * 2000)}
+                    for i, p in enumerate(productos, 1)
+                ],
+            )
         tipos=[ArticuloAlquiler.Tipo.ANDAMIO,ArticuloAlquiler.Tipo.ANDAMIO,ArticuloAlquiler.Tipo.HERRAMIENTA,ArticuloAlquiler.Tipo.HERRAMIENTA,ArticuloAlquiler.Tipo.OTRO]
         for i,tipo in enumerate(tipos,1):
             ArticuloAlquiler.objects.get_or_create(negocio=negocio,referencia=f'ALQ-{i:03}',defaults={'nombre':f'Artículo alquiler {i}','tipo':tipo,'cantidad_total':10,'cantidad_disponible':10,'tarifa_diaria':Decimal(10000*i),'costo_diario':Decimal(1500*i),'valor_reposicion':Decimal(100000*i),'creado_por':admin})
