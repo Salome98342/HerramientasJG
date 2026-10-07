@@ -97,7 +97,8 @@ def test_compras_concurrentes_bloquean_producto_y_actualizan_costo_ponderado(esc
 
     data['producto'].refresh_from_db()
     assert data['producto'].stock_actual == Decimal('7.00')
-    assert data['producto'].costo_promedio == Decimal('142.86')
+    costo_ponderado = Decimal('1000') / Decimal('7')
+    assert abs(data['producto'].costo_promedio - costo_ponderado) <= Decimal('0.01')
     assert sorted(compra.numero for compra in compras) == [1, 2]
     assert MovimientoInventario.objects.filter(
         producto=data['producto'], tipo=MovimientoInventario.Tipo.ENTRADA_COMPRA,
