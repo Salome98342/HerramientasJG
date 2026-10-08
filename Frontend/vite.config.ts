@@ -8,7 +8,12 @@ export default defineConfig(({ mode }) => {
     resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
     server: {
       proxy: {
-        '/api': { target: env.VITE_PROXY_TARGET ?? 'http://127.0.0.1:8000', changeOrigin: false },
+        '/api': {
+          target: env.VITE_PROXY_TARGET ?? 'http://localhost:8000',
+          changeOrigin: true,
+          secure: false,
+          cookieDomainRewrite: { '*': '' },
+        },
       },
     },
   };

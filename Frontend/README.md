@@ -11,7 +11,7 @@ if (!(Test-Path .env)) { Copy-Item .env.example .env }
 npm run dev
 ```
 
-El `.env` local usa `VITE_API_URL=/api` y `VITE_ENABLE_MOCKS=false`; Vite proxya `/api` a `http://127.0.0.1:8000`. Para desarrollo simulado, pon `VITE_ENABLE_MOCKS=true` y reinicia Vite. En modo real, usa los usuarios creados por `python manage.py seed_demo --password "..."`. `npm run build` genera `dist/`.
+El `.env` local usa `VITE_API_URL=/api` y `VITE_ENABLE_MOCKS=false`; Vite proxya `/api` a `http://localhost:8000`, normaliza el host del proxy para mantener la cookie CSRF y el refresh httpOnly en el mismo origen del frontend y evita problemas de dominio/CSRF en desarrollo. Para desarrollo simulado, pon `VITE_ENABLE_MOCKS=true` y reinicia Vite. En modo real, usa los usuarios creados por `python manage.py seed_demo --password "..."`. `npm run build` genera `dist/`.
 
 ## Fase 1 incluida
 
