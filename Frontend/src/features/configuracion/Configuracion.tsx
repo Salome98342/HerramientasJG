@@ -57,7 +57,7 @@ export default function Configuracion() {
 
   const totals = Object.values(payment).filter(Boolean).length;
 
-  return <main className="jg-page jg-enter">
+  return <main className="jg-page jg-page--settings jg-enter">
     <header className="jg-page__heading">
       <div>
         <span className="jg-eyebrow">ADMINISTRACIÓN</span>

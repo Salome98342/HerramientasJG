@@ -32,7 +32,7 @@ const sections = [
 ];
 
 export default function Ayuda() {
-  return <main className="jg-page jg-enter">
+  return <main className="jg-page jg-page--help jg-enter">
     <header className="jg-page__heading">
       <div>
         <span className="jg-eyebrow">CENTRO DE AYUDA</span>
